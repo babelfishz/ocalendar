@@ -16,4 +16,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/orchid/{name}','orchidController@getOrchid');
+
 Route::resource('/photo', 'PhotoController');
