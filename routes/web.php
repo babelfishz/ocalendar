@@ -16,6 +16,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/orchid/{name}','orchidController@getOrchid');
 
-Route::resource('/photo', 'PhotoController');
+//Route::get('/wechat/getcode', 'wechatApiController@getcode');
+
+//Route::get('/orchid/{name}','orchidController@getOrchid');
+
+//Route::resource('/photo', 'PhotoController');

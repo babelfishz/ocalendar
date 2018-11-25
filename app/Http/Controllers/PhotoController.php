@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
 use App\Photo;
+use Crypt;
 use Image;
 use File;
 use Log;
@@ -19,11 +20,12 @@ class PhotoController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        $photos = Photo::orderBy('dateTimeDigitized', 'desc')->paginate(30);
-        $species = Photo::distinct('floraName')->count('floraName');
-        return array('floras'=> $photos, 'species'=> $species);
+        $userId = Crypt::decrypt($request->Input('userId'));
+        $photos = Photo::where('userId', '=', $userId)->orderBy('dateTimeDigitized', 'desc')->paginate(30);
+        $species = Photo::where('userId', '=', $userId)->distinct('floraName')->count('floraName');
+        return array('floras'=> $photos, 'species'=> $species, 'userId' => $userId);
     }
 
     /**
@@ -70,6 +72,8 @@ class PhotoController extends Controller
 
             
             $photo = new Photo;
+            //$photo->userId = Crypt::decryptString($request->input('userId'));
+            $photo->userId = Crypt::decrypt($request->Input('userId'));
             $photo->floraName = $request->input('name');
             $photo->filePath = $destinationPath;
             $photo->fileName = $fileName;
@@ -89,9 +93,10 @@ class PhotoController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($month)
+    public function show($month, Request $request)
     {
-        return Photo::whereMonth('dateTimeDigitized', '=', $month)->orderBy('dateTimeDigitized', 'desc')->groupBy('floraName')->get();
+        $userId = Crypt::decrypt($request->Input('userId'));
+        return Photo::whereMonth('dateTimeDigitized', '=', $month)->where('userId', '=', $userId)->orderBy('dateTimeDigitized', 'desc')->groupBy('floraName')->get();
         //return Photo::where('floraName', '=', $name)->orderBy('dateTimeDigitized', 'desc')->get();
     }
 
@@ -127,9 +132,13 @@ class PhotoController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy($id, request $request)
     {
         $photo = Photo::find($id);
+
+        $userId = Crypt::decrypt($request->Input('userId'));
+        //if($photo->userId != $userId){};
+
         $imageFile = $photo->filePath . $photo->fileName;
         log::info('photo to be deleted: ' . $imageFile);
         if(File::exists($imageFile)){
@@ -143,5 +152,8 @@ class PhotoController extends Controller
         }
 
         $destroy = Photo::destroy($id);
+
+        $species = Photo::where('userId', '=', $userId)->distinct('floraName')->count('floraName');
+        return response()->json(['species' => $species]);
     }
 }
