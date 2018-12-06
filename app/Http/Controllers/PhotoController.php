@@ -22,7 +22,9 @@ class PhotoController extends Controller
      */
     public function index(Request $request)
     {
+
         $userId = Crypt::decrypt($request->Input('userId'));
+        //Log::info('------userid:------' . $userId);
         $photos = Photo::where('userId', '=', $userId)->orderBy('dateTimeDigitized', 'desc')->paginate(30);
         $species = Photo::where('userId', '=', $userId)->distinct('floraName')->count('floraName');
         return array('floras'=> $photos, 'species'=> $species, 'userId' => $userId);

@@ -19,7 +19,11 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 });
 
-Route::get('/wechat/getcode', 'wechatApiController@getcode');
+Route::get('/getcode', 'wechatApiController@getcode');
+
+Route::get('/users', 'wechatApiController@indexUserInfo');
+Route::post('/users', 'wechatApiController@updateUserInfo');
+Route::delete('/users/{usrId}', 'wechatApiController@deleteUserInfo');
 
 Route::get('/orchid/{name}','orchidController@getOrchid');
 

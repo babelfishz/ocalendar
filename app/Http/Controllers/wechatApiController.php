@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller; 
 use Illuminate\Support\Facades\Input; 
 use GuzzleHttp\Client; 
-use App\User;
+use App\UserInfo;
 use Crypt;
 use Log;
 
@@ -22,7 +22,7 @@ class wechatApiController extends Controller
 		//$encryptedData = $request->get('encryptedData'); 
 		//$iv = $request->get('iv'); 
 
-		log::info($code);
+		//log::info($code);
 
 		$appid = "wx743bb595feb128c4"; 
 		$secret = "a6d5d99d069ffbd2326d5c112763929f"; 
@@ -40,60 +40,55 @@ class wechatApiController extends Controller
 		$body = json_decode($res->getBody()); 
 		$userId = $body->openid;
 		$encryptUserId = Crypt::encrypt($userId);
-		//$session_key = $body->session_key;
 
 		return($encryptUserId);
 
-		//return(Crypt::encrypt($openid)); 
-
-		/*$userifo = new \WXBizDataCrypt($appid, $session_key); 
-
-		$errCode = $userifo->decryptData($encryptedData, $iv, $data); 
-
-		$info = json_decode($data); 
-		$nickName = $info->nickName; 
-		$avatarUrl = $info->avatarUrl; 
-		$province = $info->province; 
-		$city = $info->city;*/
-
-		/*$user = User::where('open_id', '=', $openid)->first();
-		if ($user == null){
-			$user = new User; 
-			$user->open_id = $openid;
-			$user->save(); 
-		}*/
-
-		/*if (!$user->find($openid)) 
-		{ 
-			$user->openid = $openid; 
-			//$user->session_key = $session_key; 
-			//$user->nickName = $nickName; 
-			//$user->avatarUrl = $avatarUrl; 
-			//$user->province = $province; 
-			//$user->city = $city; 
-			//$user->save(); 
-		};*/ 
-
-		/*if ($errCode == 0) { 
-				return ($data); 
-		} else { 
-				return ($errCode); 
-		};*/
-
-		/*$url = resolve('Illuminate\Http\Request')->getSchemeAndHttpHost().'/oauth/token';
 		
-		$http = new \GuzzleHttp\Client;
-		$response = $http->post($url, [
-    		'form_params' => [
-        		'grant_type' => 'password',
-        		'client_id' => '3',
-        		'client_secret' => 'W6IlY7Zp1Fh995E5axaksO9yTVH5U4nHDG8uycD2',
-        		'username' => $nickName,
-        		'password' => 'password',
-        		//'scope' => '',
-    		],
-		]);*/
+	}
 
-		//return json_decode((string) $response->getBody(), true);
+	public function indexUserInfo(Request $request){
+
+		$userId = $request->Input('userId');
+		$openid = Crypt::decrypt($userId);
+		$allUserInfo = UserInfo::all();
+		
+		$stack = [];
+		foreach ($allUserInfo as $userInfo) {
+			$data = new \StdClass();
+   			$data->userId = ($openid == $userInfo->openid) ? $userId : Crypt::encrypt($userInfo->openid);
+   			$data->avatarUrl = $userInfo->avatarUrl;
+   			$data->nickName = $userInfo->nickName;
+   			$data->city = $userInfo->city;
+   			$data->rovince =$userInfo->province;
+   			array_push($stack, $data);
+   		}
+
+		return $stack;
+	}
+
+	public function updateUserInfo(Request $request){
+
+		$userId = Crypt::decrypt($request->Input('userId'));
+
+		$userInfo = UserInfo::where('openid', '=', $userId)->first();
+
+		
+		if ($userInfo == null){
+			$userInfo = new UserInfo; 
+			$userInfo->openid = $userId;
+		}
+
+		$userInfo->nickName = $request->Input('nickName');
+		$userInfo->avatarUrl = $request->Input('avatarUrl');
+		$userInfo->province =  $request->Input('province');
+		$userInfo->city = $request->Input('city');
+
+		$errCode = $userInfo->save(); 
+	}
+
+	public function deleteUserInfo($userId){
+
+		$openid = Crypt::decrypt($userId);
+		$destroy = UserInfo::destroy($openid);
 	}
 }
