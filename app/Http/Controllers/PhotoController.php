@@ -51,19 +51,34 @@ class PhotoController extends Controller
         $file = $request->file('file');
         $extension = strtolower($file->getClientOriginalExtension()) ?: 'png';
         $destinationPath = 'storage/uploads/images/';
+        
         $fileName = time() . '_' . str_random(10) . '.' . $extension;
-
+        $tmpFileName = $fileName . '.tmp';
 
         /*if ( ! in_array($extension, $this->allowed_ext)) {
             return response()->json(['success' => false]);
         }*/
 
-     
 
-        if ($file->move($destinationPath, $fileName)){
+        //if ($file->move($destinationPath, $fileName)){
+        if ($file->move($destinationPath, $tmpFileName)){
             
-            $img = Image::make($destinationPath . $fileName);
+            //$img = Image::make($destinationPath . $fileName);
+            $img = Image::make($destinationPath . $tmpFileName);
             $dateTimeDigitized = $img->exif('DateTimeDigitized');
+
+            //$data = $img->exif();
+            //Log::info($data);
+
+            if($dateTimeDigitized == null) {
+                $dateTimeDigitized = $img->exif('DateTime');
+            };
+
+            $resizedFile = $img->resize(1600, null, function ($constraint) {
+                $constraint->aspectRatio();
+                $constraint->upsize();
+            });
+            $resizedFile->save($destinationPath . $fileName);
 
             $thumbnailFileName = basename($fileName,$extension) . 'thumbnail' . '.'. $extension;
             $thumbnail = $img->resize(300, null, function ($constraint) {
@@ -71,10 +86,10 @@ class PhotoController extends Controller
                 $constraint->upsize();
             });
             $thumbnail->save($destinationPath . $thumbnailFileName);
-
             
+            File::delete($destinationPath . $tmpFileName);
+
             $photo = new Photo;
-            //$photo->userId = Crypt::decryptString($request->input('userId'));
             $photo->userId = Crypt::decrypt($request->Input('userId'));
             $photo->floraName = $request->input('name');
             $photo->filePath = $destinationPath;
@@ -97,9 +112,39 @@ class PhotoController extends Controller
      */
     public function show($month, Request $request)
     {
+        /*if ($request->Input('userId') != null) {
+            $userId = Crypt::decrypt($request->Input('userId'));
+            return Photo::whereMonth('dateTimeDigitized', '=', $month)->where('userId', '=', $userId)->orderBy('dateTimeDigitized', 'desc')->groupBy('floraName')->get();
+        }
+        else{
+            return Photo::whereMonth('dateTimeDigitized', '=', $month)->orderBy('dateTimeDigitized', 'desc')->groupBy('floraName')->get();
+        }*/
+
         $userId = Crypt::decrypt($request->Input('userId'));
-        return Photo::whereMonth('dateTimeDigitized', '=', $month)->where('userId', '=', $userId)->orderBy('dateTimeDigitized', 'desc')->groupBy('floraName')->get();
-        //return Photo::where('floraName', '=', $name)->orderBy('dateTimeDigitized', 'desc')->get();
+        $myFloras = Photo::whereMonth('dateTimeDigitized', '=', $month)->where('userId', '=', $userId)->orderBy('dateTimeDigitized', 'desc')->groupBy('floraName')->get();
+        $othersFloras = Photo::whereMonth('dateTimeDigitized', '=', $month)->where('userId', '!=', $userId)->orderBy('dateTimeDigitized', 'desc')->groupBy('floraName')->get();
+
+        $floraNames = array();
+        foreach($myFloras as $myflora) {
+            $floraNames[] = $myflora->floraName;
+        }
+
+        //log::info($floraNames);
+
+        $extraFloras = [];
+        foreach ($othersFloras as $flora) {
+            $key = array_search($flora->floraName, $floraNames);
+            //log::info($flora->floraName);
+            //log::info($key);
+
+            if ($key === false)
+            {
+                array_push($extraFloras, $flora);
+            }
+        };
+        
+        //log::info($extraFloras);
+        return array('myFloras'=> $myFloras, 'extraFloras'=> $extraFloras);
     }
 
     /**
@@ -148,7 +193,7 @@ class PhotoController extends Controller
         }
 
         $thumbImageFile = $photo->filePath . $photo->thumbnailFileName;
-        log::info('photo to be deleted: ' . $thumbImageFile);
+        //log::info('photo to be deleted: ' . $thumbImageFile);
         if(File::exists($thumbImageFile)){
             File::delete($thumbImageFile);
         }
