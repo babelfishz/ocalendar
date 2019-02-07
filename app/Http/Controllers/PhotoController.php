@@ -74,10 +74,16 @@ class PhotoController extends Controller
                 $dateTimeDigitized = $img->exif('DateTime');
             };
 
-            $resizedFile = $img->resize(1600, null, function ($constraint) {
+            $targetWidth = 1200;
+            if($img->width() > $img->height()){
+                $targetWidth = 1600;
+            }
+
+            $resizedFile = $img->resize($targetWidth, null, function ($constraint) {
                 $constraint->aspectRatio();
                 $constraint->upsize();
             });
+
             $resizedFile->save($destinationPath . $fileName);
 
             $thumbnailFileName = basename($fileName,$extension) . 'thumbnail' . '.'. $extension;
