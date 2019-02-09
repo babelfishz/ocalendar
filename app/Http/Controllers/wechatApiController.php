@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Input; 
 use GuzzleHttp\Client; 
 use App\UserInfo;
+use App\Photo;
 use Crypt;
 use Log;
 
@@ -42,8 +43,6 @@ class wechatApiController extends Controller
 		$encryptUserId = Crypt::encrypt($userId);
 
 		return($encryptUserId);
-
-		
 	}
 
 	public function indexUserInfo(Request $request){
@@ -52,7 +51,28 @@ class wechatApiController extends Controller
 		$openid = Crypt::decrypt($userId);
 		$allUserInfo = UserInfo::all();
 		
-		$stack = [];
+		$hereAmI = false;
+		$peoples = [];
+
+		foreach ($allUserInfo as $userInfo) {
+			if($openid != $userInfo->openid){
+				$data = new \StdClass();
+	   			$data->userId = Crypt::encrypt($userInfo->openid);
+	   			$data->avatarUrl = $userInfo->avatarUrl;
+	   			$data->nickName = $userInfo->nickName;
+	   			$data->city = $userInfo->city;
+	   			$data->province =$userInfo->province;
+	   			$data->photoCount = Photo::where('userId', '=', $userInfo->openid)->count();
+	   			array_push($peoples, $data);
+	   		}
+	   		else{
+	   			$hereAmI = true;
+	   		}
+   		}
+
+		return array('hereAmI' => $hereAmI, 'peoples'=> $peoples);
+
+		/*$stack = [];
 		foreach ($allUserInfo as $userInfo) {
 			$data = new \StdClass();
    			$data->userId = ($openid == $userInfo->openid) ? $userId : Crypt::encrypt($userInfo->openid);
@@ -60,10 +80,11 @@ class wechatApiController extends Controller
    			$data->nickName = $userInfo->nickName;
    			$data->city = $userInfo->city;
    			$data->rovince =$userInfo->province;
+   			$data->photoCount = Photo::where('userId', '=', $userInfo->openid)->count();
    			array_push($stack, $data);
    		}
 
-		return $stack;
+		return $stack;*/
 	}
 
 	public function updateUserInfo(Request $request){

@@ -140,8 +140,6 @@ class PhotoController extends Controller
         $extraFloras = [];
         foreach ($othersFloras as $flora) {
             $key = array_search($flora->floraName, $floraNames);
-            //log::info($flora->floraName);
-            //log::info($key);
 
             if ($key === false)
             {
@@ -149,8 +147,16 @@ class PhotoController extends Controller
             }
         };
         
-        //log::info($extraFloras);
+        /*Log::info($userId);
+        log::info($myFloras);
+        log::info($extraFloras);*/
         return array('myFloras'=> $myFloras, 'extraFloras'=> $extraFloras);
+    }
+
+    public function queryByName($name, Request $request)
+    {
+        $floras = Photo::where('floraName', '=', $name)->orderBy('dateTimeDigitized', 'desc')->get();
+        return $floras;
     }
 
     /**
