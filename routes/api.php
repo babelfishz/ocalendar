@@ -28,4 +28,5 @@ Route::delete('/users/{usrId}', 'wechatApiController@deleteUserInfo');
 Route::get('/orchid/{name}','orchidController@getOrchid');
 
 Route::get('/photo/name/{name}','PhotoController@queryByName');
+Route::get('/photo/all/name/{name}','PhotoController@queryAllPhotoByName');
 Route::resource('/photo', 'PhotoController');

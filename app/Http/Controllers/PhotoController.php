@@ -30,6 +30,25 @@ class PhotoController extends Controller
         return array('floras'=> $photos, 'species'=> $species, 'userId' => $userId);
     }
 
+    public function queryByName($name, Request $request)
+    {
+        $userId = Crypt::decrypt($request->Input('userId'));
+        $photos = Photo::where('floraName', 'like', '%'.$name.'%')->where('userId', '=', $userId)->orderBy('dateTimeDigitized', 'desc')->paginate(300);
+        //$species = $photos->isEmpty() ? 0: 1;
+        $species = Photo::where('floraName', 'like', '%'.$name.'%')->where('userId', '=', $userId)->distinct('floraName')->count('floraName');
+        return array('floras'=> $photos, 'species'=> $species, 'userId' => $userId);
+    }
+
+    public function queryAllPhotoByName($name, Request $request)
+    {
+        $userId = Crypt::decrypt($request->Input('userId'));
+        $photos = Photo::where('floraName', 'like', '%'.$name.'%')->orderBy('dateTimeDigitized', 'desc')->paginate(300);
+        //$species = $photos->isEmpty() ? 0: 1;
+        $species = Photo::where('floraName', 'like', '%'.$name.'%')->distinct('floraName')->count('floraName');
+        return array('floras'=> $photos, 'species'=> $species, 'userId' => $userId);
+    }
+
+
     /**
      * Show the form for creating a new resource.
      *
@@ -153,11 +172,6 @@ class PhotoController extends Controller
         return array('myFloras'=> $myFloras, 'extraFloras'=> $extraFloras);
     }
 
-    public function queryByName($name, Request $request)
-    {
-        $floras = Photo::where('floraName', '=', $name)->orderBy('dateTimeDigitized', 'desc')->get();
-        return $floras;
-    }
 
     /**
      * Show the form for editing the specified resource.
