@@ -137,24 +137,17 @@ class PhotoController extends Controller
      */
     public function show($month, Request $request)
     {
-        /*if ($request->Input('userId') != null) {
-            $userId = Crypt::decrypt($request->Input('userId'));
-            return Photo::whereMonth('dateTimeDigitized', '=', $month)->where('userId', '=', $userId)->orderBy('dateTimeDigitized', 'desc')->groupBy('floraName')->get();
-        }
-        else{
-            return Photo::whereMonth('dateTimeDigitized', '=', $month)->orderBy('dateTimeDigitized', 'desc')->groupBy('floraName')->get();
-        }*/
 
         $userId = Crypt::decrypt($request->Input('userId'));
-        $myFloras = Photo::whereMonth('dateTimeDigitized', '=', $month)->where('userId', '=', $userId)->orderBy('dateTimeDigitized', 'desc')->groupBy('floraName')->get();
-        $othersFloras = Photo::whereMonth('dateTimeDigitized', '=', $month)->where('userId', '!=', $userId)->orderBy('dateTimeDigitized', 'desc')->groupBy('floraName')->get();
+        $myFloras = Photo::whereMonth('dateTimeDigitized', '=', $month)->where('userId', '=', $userId)->orderBy('dateTimeDigitized', 'desc')->groupBy('floraName')->get(['floraName','dateTimeDigitized','filePath','fileName', 'thumbnailFileName']);
+        $othersFloras = Photo::whereMonth('dateTimeDigitized', '=', $month)->where('userId', '!=', $userId)->leftjoin('user_infos', 'user_infos.openid', '=','photos.userId')->orderBy('dateTimeDigitized', 'desc')->groupBy('floraName')->get(['photos.floraName','photos.dateTimeDigitized','photos.filePath','photos.fileName', 'photos.thumbnailFileName', 'user_infos.nickName']);
+
+        //$test = Photo::whereMonth('dateTimeDigitized', '=', $month)->where('userId', '!=', $userId)->leftjoin('user_infos', 'user_infos.openid', '=','photos.userId')->orderBy('dateTimeDigitized', 'desc')->get(['photos.floraName','photos.dateTimeDigitized','photos.filePath','photos.fileName', 'photos.thumbnailFileName', 'user_infos.nickName']);
 
         $floraNames = array();
         foreach($myFloras as $myflora) {
             $floraNames[] = $myflora->floraName;
         }
-
-        //log::info($floraNames);
 
         $extraFloras = [];
         foreach ($othersFloras as $flora) {
@@ -166,9 +159,6 @@ class PhotoController extends Controller
             }
         };
         
-        /*Log::info($userId);
-        log::info($myFloras);
-        log::info($extraFloras);*/
         return array('myFloras'=> $myFloras, 'extraFloras'=> $extraFloras);
     }
 

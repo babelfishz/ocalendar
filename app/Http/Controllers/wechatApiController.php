@@ -40,8 +40,15 @@ class wechatApiController extends Controller
 
 		$body = json_decode($res->getBody()); 
 		$userId = $body->openid;
-		$encryptUserId = Crypt::encrypt($userId);
+		
+		$userInfo = UserInfo::where('openid', '=', $userId)->first();
+		if ($userInfo == null){
+			$userInfo = new UserInfo; 
+			$userInfo->openid = $userId;
+			$userInfo->save();
+		}
 
+		$encryptUserId = Crypt::encrypt($userId);
 		return($encryptUserId);
 	}
 
@@ -55,22 +62,25 @@ class wechatApiController extends Controller
 		$peoples = [];
 
 		foreach ($allUserInfo as $userInfo) {
-			if($openid != $userInfo->openid){
-				$data = new \StdClass();
-	   			$data->userId = Crypt::encrypt($userInfo->openid);
-	   			$data->avatarUrl = $userInfo->avatarUrl;
-	   			$data->nickName = $userInfo->nickName;
-	   			$data->city = $userInfo->city;
-	   			$data->province =$userInfo->province;
-	   			$data->photoCount = Photo::where('userId', '=', $userInfo->openid)->count();
-	   			array_push($peoples, $data);
-	   		}
-	   		else{
-	   			$hereAmI = true;
+			//$userInfo->sharable = true;
+			//$userInfo->save();
+			if($userInfo->sharable){
+				if($openid != $userInfo->openid){
+					$data = new \StdClass();
+		   			$data->userId = Crypt::encrypt($userInfo->openid);
+		   			$data->avatarUrl = $userInfo->avatarUrl;
+		   			$data->nickName = $userInfo->nickName;
+		   			$data->city = $userInfo->city;
+		   			$data->province =$userInfo->province;
+		   			$data->photoCount = Photo::where('userId', '=', $userInfo->openid)->count();
+		   			array_push($peoples, $data);
+		   		}else{
+	   				$hereAmI = true;
+	   			}
 	   		}
    		}
 
-		return array('hereAmI' => $hereAmI, 'peoples'=> $peoples);
+		return array('hereAmI' => $hereAmI, 'peoples'=> $peoples, 'test'=>$allUserInfo);
 
 		/*$stack = [];
 		foreach ($allUserInfo as $userInfo) {
@@ -103,6 +113,7 @@ class wechatApiController extends Controller
 		$userInfo->avatarUrl = $request->Input('avatarUrl');
 		$userInfo->province =  $request->Input('province');
 		$userInfo->city = $request->Input('city');
+		$userInfo->sharable = true;
 
 		$errCode = $userInfo->save(); 
 	}
@@ -110,6 +121,23 @@ class wechatApiController extends Controller
 	public function deleteUserInfo($userId){
 
 		$openid = Crypt::decrypt($userId);
-		$destroy = UserInfo::destroy($openid);
+		$userInfo = UserInfo::where('openid', '=', $openid)->first();
+		
+		if ($userInfo == null){
+			log::info('illegal id');
+		}
+
+		$userInfo->nickName = null;
+		$userInfo->avatarUrl = null;
+		$userInfo->province =  null;
+		$userInfo->city = null;
+		$userInfo->sharable = false;
+
+		$errCode = $userInfo->save(); 
+
+		return($userInfo);
+
+		//$destroy = UserInfo::destroy($openid);
+		//return('userinfo'=> $userInfo);
 	}
 }
