@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
 use App\Photo;
+use App\Orchid;
 use Crypt;
 use Image;
 use File;
@@ -24,28 +25,33 @@ class PhotoController extends Controller
     {
 
         $userId = Crypt::decrypt($request->Input('userId'));
-        //Log::info('------userid:------' . $userId);
-        $photos = Photo::where('userId', '=', $userId)->orderBy('dateTimeDigitized', 'desc')->paginate(30);
+        $year = $request->Input('year');
+        $photos = Photo::where('userId', '=', $userId)->whereYear('dateTimeDigitized', '=', $year)->orderBy('dateTimeDigitized', 'desc')->paginate(30);
+        //$photos = Photo::where('userId', '=', $userId)->orderBy('dateTimeDigitized', 'desc')->paginate(30);
         $species = Photo::where('userId', '=', $userId)->distinct('floraName')->count('floraName');
-        return array('floras'=> $photos, 'species'=> $species, 'userId' => $userId);
+        $speciesOfYear = Photo::where('userId', '=', $userId)->whereYear('dateTimeDigitized', '=', $year)->distinct('floraName')->count('floraName');
+        $count = Photo::where('userId', '=', $userId)->count();
+        return array('floras'=> $photos, 'species'=> $species, 'count'=>$count, 'userId' => $userId, 'speciesOfYear' => $speciesOfYear);
     }
 
     public function queryByName($name, Request $request)
     {
         $userId = Crypt::decrypt($request->Input('userId'));
         $photos = Photo::where('floraName', 'like', '%'.$name.'%')->where('userId', '=', $userId)->orderBy('dateTimeDigitized', 'desc')->paginate(300);
-        //$species = $photos->isEmpty() ? 0: 1;
         $species = Photo::where('floraName', 'like', '%'.$name.'%')->where('userId', '=', $userId)->distinct('floraName')->count('floraName');
-        return array('floras'=> $photos, 'species'=> $species, 'userId' => $userId);
+        $count = count($photos);
+        return array('floras'=> $photos, 'species'=> $species, 'count'=>$count, 'userId' => $userId);
     }
 
     public function queryAllPhotoByName($name, Request $request)
     {
         $userId = Crypt::decrypt($request->Input('userId'));
         $photos = Photo::where('floraName', 'like', '%'.$name.'%')->orderBy('dateTimeDigitized', 'desc')->paginate(300);
-        //$species = $photos->isEmpty() ? 0: 1;
         $species = Photo::where('floraName', 'like', '%'.$name.'%')->distinct('floraName')->count('floraName');
-        return array('floras'=> $photos, 'species'=> $species, 'userId' => $userId);
+        $count = count($photos);
+        //return array('floras'=> $photos, 'species'=> $species, 'count'=>$count, 'userId' => $userId);
+        $morePhotos = Orchid::where('orchids.genus', 'like', '%'.$name.'%')->join('photos', 'floraName', '=', 'orchids.species')->where('floraName','not like', '%'.$name.'%')->orderBy('dateTimeDigitized', 'desc')->get();
+        return array('floras'=> $photos, 'species'=> $species, 'count'=>$count, 'userId' => $userId, 'more' => $morePhotos);
     }
 
 

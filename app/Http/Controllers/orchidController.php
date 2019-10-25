@@ -12,7 +12,9 @@ class orchidController extends Controller
 {
     public function getOrchid($name){
     	$orchid = Orchid::where('species', '=', $name)->first();
-    	$orchid->makeHidden(['Document']);
+    	if($orchid){
+    		$orchid->makeHidden(['Document']);
+    	}
     	return $orchid;
     }
 }
